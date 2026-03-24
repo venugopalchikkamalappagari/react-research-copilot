@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+
+# Secrets — never commit real keys
+.env
+
+# Generated outputs
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Jupyter
+.ipynb_checkpoints/
