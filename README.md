@@ -11,7 +11,7 @@ Streamlit UI → FastAPI → ReAct Agent → Tools → Retriever → FAISS → C
 
 # 1. Clone and enter
 
-git clone <https://github.com/YOUR_USERNAME/react-research-copilot.git>
+git clone <https://github.com/venugopalchikkamalappagari/react-research-copilot.git>
 cd react-research-copilot
 
 # 2. Create and activate virtual environment
