@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     logs_dir: str = "outputs/logs"
     runs_dir: str = "outputs/runs"
 
-    chunk_size: int = 300
-    chunk_overlap: int = 50
+    chunk_size: int = 50
+    chunk_overlap: int = 10
     top_k: int = 5
     max_react_steps: int = 8
 
