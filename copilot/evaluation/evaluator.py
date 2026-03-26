@@ -89,7 +89,7 @@ def evaluate(mode: str = "react") -> list[dict]:
             "notes": f"elapsed={elapsed}s"
         })
 
-        time.sleep(1)
+        time.sleep(5)
 
     return results
 

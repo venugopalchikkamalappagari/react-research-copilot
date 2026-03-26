@@ -58,21 +58,41 @@ if question := st.chat_input("Ask a question about the corpus..."):
     with st.chat_message("assistant"):
         with st.spinner("Researching..."):
             try:
+                import time
+                start = time.time()
                 response = requests.post(
                     f"{API_URL}/query",
                     json={"question": question},
-                    timeout=120
+                    timeout=300
                 )
                 data = response.json()
                 answer = data["answer"]
                 steps = data["steps"]
                 step_count = data["step_count"]
 
+                elapsed = round(time.time() - start, 2)
+                st.caption(f"⏱️ Response time: {elapsed}s")
                 st.markdown(answer)
                 with st.expander(f"🔍 Agent steps ({step_count} steps)"):
                     for step in steps:
-                        st.markdown(f"**Step {step['step']}:** `{step['action']}({step['args']})`")
-                        st.code(step["observation"][:500], language="text")
+                        st.markdown(f"**🔢 Step {step['step']}**")
+                        if step.get("thought"):
+                            col1, col2 = st.columns([1, 4])
+                            with col1:
+                                st.markdown("🧠 **Thought**")
+                            with col2:
+                                st.info(step["thought"])
+                        col1, col2 = st.columns([1, 4])
+                        with col1:
+                            st.markdown("🔧 **Action**")
+                        with col2:
+                            st.code(f"{step['action']}({step['args']})", language="python")
+                        col1, col2 = st.columns([1, 4])
+                        with col1:
+                            st.markdown("👁️ **Observe**")
+                        with col2:
+                            st.code(step["observation"][:600], language="text")
+                        st.divider()
 
                 st.session_state.messages.append({
                     "role": "assistant",

@@ -5,7 +5,8 @@ from pathlib import Path
 class Settings(BaseSettings):
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
-    llm_model: str = "qwen/qwen3.5-122b-a10b"
+    #llm_model: str = "qwen/qwen3.5-122b-a10b"
+    llm_model: str = "meta/llama-3.1-8b-instruct"
     embed_model: str = "nvidia/llama-nemotron-embed-1b-v2"
 
     corpus_dir: str = "corpus"
