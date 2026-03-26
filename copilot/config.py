@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
 
@@ -19,9 +19,6 @@ class Settings(BaseSettings):
     top_k: int = 5
     max_react_steps: int = 8
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 settings = Settings()
