@@ -13,8 +13,9 @@ def search_corpus(query: str) -> str:
         return "No relevant chunks found."
     output = []
     for r in results:
+        citation = r.get("citation", f"[{r['file']}]")
         output.append(
-            f"[{r['file']}]\n{r['text']}\n(score: {r['score']:.4f})"
+            f"{citation}\n{r['text']}\n(score: {r['score']:.4f})"
         )
     return "\n\n---\n\n".join(output)
 
