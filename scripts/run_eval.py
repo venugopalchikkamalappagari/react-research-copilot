@@ -41,3 +41,17 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # Generate written report
+    from copilot.evaluation.evaluator import generate_report
+    from pathlib import Path
+    import glob
+
+    runs_dir = "outputs/runs"
+    baseline_files = sorted(glob.glob(f"{runs_dir}/eval_baseline_*.csv"))
+    react_files    = sorted(glob.glob(f"{runs_dir}/eval_react_*.csv"))
+
+    if baseline_files and react_files:
+        report = generate_report(baseline_files[-1], react_files[-1])
+        report_path = Path(runs_dir) / "evaluation_report.md"
+        report_path.write_text(report, encoding="utf-8")
+        print(f"\nEvaluation report saved to {report_path}")
