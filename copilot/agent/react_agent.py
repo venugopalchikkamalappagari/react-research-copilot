@@ -30,14 +30,20 @@ def run_react_agent(question: str) -> dict:
         step_start = t.time()
 
         console.print(f"\n[bold yellow]Step {step_num}[/bold yellow]")
-
-        response = client.chat.completions.create(
-            model=settings.llm_model,
-            messages=messages,
-            tools=TOOLS,
-            tool_choice="auto",
-            max_tokens=1024
-        )
+        
+        try:
+            response = client.chat.completions.create(
+                model=settings.llm_model,
+                messages=messages,
+                tools=TOOLS,
+                tool_choice="auto",
+                max_tokens=1024,
+                timeout=60
+            )
+        except Exception as e:
+            console.print(f"  [bold red]Timeout/Error on step {step_num}: {e}[/bold red]")
+            final_answer = f"Agent timed out or encountered an error: {e}"
+            break
 
         message = response.choices[0].message
 
