@@ -30,21 +30,30 @@ def run_react_agent(question: str) -> dict:
         step_start = t.time()
 
         console.print(f"\n[bold yellow]Step {step_num}[/bold yellow]")
-        
-        try:
-            response = client.chat.completions.create(
-                model=settings.llm_model,
-                messages=messages,
-                tools=TOOLS,
-                tool_choice="auto",
-                max_tokens=1024,
-                timeout=60
-            )
-        except Exception as e:
-            console.print(f"  [bold red]Timeout/Error on step {step_num}: {e}[/bold red]")
-            final_answer = f"Agent timed out or encountered an error: {e}"
-            break
 
+        import time as _time
+        response = None
+        for attempt in range(3):
+            try:
+                response = client.chat.completions.create(
+                    model=settings.llm_model,
+                    messages=messages,
+                    tools=TOOLS,
+                    tool_choice="auto",
+                    max_tokens=1024,
+                    timeout=60
+                )
+                break
+            except Exception as e:
+                wait = 5 * (attempt + 1)
+                console.print(f"  [bold red]Attempt {attempt+1}/3 failed: {e}. Retrying in {wait}s...[/bold red]")
+                _time.sleep(wait)
+
+        if response is None:
+            final_answer = "Agent failed after 3 retries. Please try again."
+            console.print(f"[bold red]{final_answer}[/bold red]")
+            break
+        
         message = response.choices[0].message
 
         # No tool call — agent has final answer
