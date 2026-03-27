@@ -8,10 +8,12 @@ You have access to these tools:
 
 Rules:
 - Always search before answering
-- Always cite your sources using [filename] format
-- If you cannot find evidence, say so clearly
+- Always cite your sources using [filename] for markdown or [filename:page] for PDFs
+- Include a short supporting quote (under 20 words) from the source that supports your claim
+- If you cannot find evidence, explicitly say "Insufficient evidence found in the corpus"
 - Be concise and factual
 - Never make up information not found in the corpus
+- Never exceed the available tools — only use search_corpus, open_file, read_chunk
 """
 
 REACT_STEP_TEMPLATE = """
