@@ -1,15 +1,15 @@
 # ReAct Research Copilot — My Learning Notes
 
-A running cheatsheet of everything I learn while building this project.
+A running cheatsheet of everything I learned while building this project.
 Written in simple terms for quick revision.
 
 ---
 
 ## 1. Project Overview
 
-**What am I building?**
+**What I built:**
 A Research Copilot — an AI agent that answers questions by reading documents
-instead of relying on memorized knowledge. It uses two big ideas: RAG and ReAct.
+instead of relying on memorized knowledge. Uses two big ideas: RAG and ReAct.
 
 **RAG (Retrieval-Augmented Generation)**
 
@@ -17,7 +17,7 @@ instead of relying on memorized knowledge. It uses two big ideas: RAG and ReAct.
 - Then uses that info to answer — with citations proving where the answer came from
 - Two phases:
   - Indexing (done once): read docs → split into chunks → convert to vectors → store
-  - Querying (done per question): convert question to vector → find similar chunks → answer
+  - Querying (per question): convert question to vector → find similar chunks → answer
 
 **ReAct (Reason + Act)**
 
@@ -27,18 +27,11 @@ instead of relying on memorized knowledge. It uses two big ideas: RAG and ReAct.
   - ACTION: search for it using a tool
   - OBSERVE: read what came back
   - Repeat until it has enough to answer
-- Much smarter than one-shot retrieval
 
-**Architecture (top to bottom):**
+**Architecture:**
 
 ```
-Streamlit UI        → what the user sees
-FastAPI             → the bridge between UI and brain (HTTP API)
-ReAct Agent         → the reasoning loop
-Tools               → search(), open_file(), read_chunk()
-Retriever           → finds relevant chunks using vectors
-FAISS Index         → stores all chunk vectors for fast search
-Corpus              → the 40 raw documents (source of truth)
+Streamlit UI → FastAPI → ReAct Agent → Tools → Retriever → FAISS Index → Corpus
 ```
 
 ---
@@ -47,215 +40,112 @@ Corpus              → the 40 raw documents (source of truth)
 
 ```
 react-research-copilot/
-├── copilot/                  ← main Python package (the brain)
-│   ├── __init__.py           ← marks folder as Python package
-│   ├── api/                  ← HTTP layer only, no business logic
-│   │   ├── __init__.py
-│   │   ├── main.py           ← FastAPI app lives here
-│   │   ├── schemas.py        ← request/response data models
+├── copilot/                  ← main Python package
+│   ├── api/                  ← FastAPI routes and schemas
+│   │   ├── main.py           ← FastAPI app
+│   │   ├── schemas.py        ← request/response models
 │   │   └── routes/
-│   │       ├── __init__.py
-│   │       ├── query.py      ← POST /query endpoint
-│   │       └── health.py     ← GET /health endpoint
+│   │       ├── query.py      ← POST /query
+│   │       └── health.py     ← GET /health
 │   ├── agent/                ← the brain
-│   │   ├── __init__.py
-│   │   ├── react_agent.py    ← ReAct loop logic
+│   │   ├── react_agent.py    ← ReAct loop with timeout + retry
 │   │   ├── prompts.py        ← all prompt templates
-│   │   └── tools.py          ← search, open_file, read_chunk
-│   ├── retrieval/            ← get data out (runs every query)
-│   │   ├── __init__.py
-│   │   ├── embeddings.py     ← text → vectors
-│   │   ├── vector_store.py   ← build + query FAISS index
-│   │   └── chunking.py       ← split text into chunks
-│   ├── ingestion/            ← get data in (runs once)
-│   │   ├── __init__.py
+│   │   └── tools.py          ← search, open_file, read_chunk + allow-list
+│   ├── retrieval/            ← RAG pipeline
+│   │   ├── embeddings.py     ← text → vectors (NVIDIA NIM)
+│   │   ├── vector_store.py   ← build + query FAISS
+│   │   └── chunking.py       ← split docs into chunks with page tracking
+│   ├── ingestion/            ← document parsing
 │   │   ├── parser.py         ← reads .md and .pdf files
-│   │   └── ingest_pipeline.py← orchestrates full ingestion
-│   ├── evaluation/           ← baseline vs ReAct comparison
-│   │   ├── __init__.py
-│   │   └── evaluator.py
-│   └── config.py             ← all settings in one place
-├── frontend/                 ← Streamlit UI
-│   ├── app.py
+│   │   └── ingest_pipeline.py
+│   ├── evaluation/
+│   │   └── evaluator.py      ← baseline vs ReAct + report generator
+│   └── config.py             ← all settings (pydantic-settings)
+├── frontend/
+│   ├── app.py                ← Streamlit chat UI
 │   └── components/
-│       ├── chat.py
-│       └── sidebar.py
-├── corpus/                   ← 40 raw documents, read only, in git
-├── outputs/                  ← everything generated, gitignored
-│   ├── index/                ← FAISS vector index saved here
-│   ├── logs/                 ← agent step-by-step logs
-│   └── runs/                 ← evaluation CSVs
+├── corpus/                   ← 39 raw documents (read-only)
+├── outputs/                  ← gitignored
+│   ├── index/                ← FAISS index (faiss.index + chunks.json)
+│   ├── logs/
+│   └── runs/                 ← eval CSVs + evaluation_report.md
 ├── scripts/
-│   ├── ingest_corpus.py      ← run once to build index
-│   └── run_eval.py           ← run evaluation pipeline
+│   ├── ingest_corpus.py      ← builds the vector index
+│   ├── run_eval.py           ← runs baseline + ReAct evaluation
+│   └── generate_report.py    ← generates evaluation_report.md from CSVs
 ├── notebooks/
-│   └── experimentation.ipynb
-├── tests/
-│   ├── __init__.py
-│   ├── test_ingestion.py
-│   ├── test_retrieval.py
-│   ├── test_tools.py
-│   └── test_agent.py
-├── .github/
-│   └── workflows/
-│       └── ci.yml            ← auto-runs tests on every push
+│   └── experimentation.ipynb ← full pipeline walkthrough
+├── tests/                    ← 12 unit tests, all passing
+├── .github/workflows/ci.yml  ← auto-runs tests on every push
 ├── react_copilot.py          ← CLI entry point
-├── Makefile                  ← shortcuts for common commands
-├── requirements.txt          ← list of all packages
-├── .env                      ← real API key (gitignored, NEVER push)
-├── .env.example              ← safe template (on GitHub)
-├── .gitignore                ← tells Git what to ignore
-├── README.md                 ← project documentation
-└── NOTES.md                  ← this file
+├── Makefile                  ← shortcuts
+├── requirements.txt
+├── .env                      ← real API key (gitignored)
+├── .env.example
+├── .gitignore
+└── README.md
 ```
-
-**Why `copilot/` and not `app/`?**
-Named after the product. Imports read as `from copilot.agent.react_agent import ReActAgent` — clear and professional.
-
-**Why `ingestion/` and `retrieval/` are separate?**
-
-- `ingestion/` = "get data in" — runs once when building the index
-- `retrieval/` = "get data out" — runs on every user query
-- Different jobs, different code, different times they run
-
-**Why `outputs/` is gitignored?**
-Contains generated files (FAISS index, logs) that are large and
-reproducible. No point storing them on GitHub.
-
-**Why `__init__.py` in every folder?**
-Tells Python "this folder is a package, not just a folder."
-Without it, imports like `from copilot.agent.react_agent import X` break.
-Rule: if you will ever write `from this_folder.x import y` — it needs `__init__.py`.
 
 ---
 
 ## 3. Git — Version Control
 
 **What is Git?**
-A tool that tracks every change you make to your code over time.
-Like a detailed save history — you can go back to any point.
+Tracks every change you make to code over time. Like a detailed save history.
 
 **What is GitHub?**
-The cloud storage for your Git history.
-Also your portfolio — recruiters and interviewers look at this.
+Cloud storage for Git history. Also your portfolio.
 
 **One-time machine setup (already done):**
 
 ```powershell
 git config --global user.name "Your Name"
 git config --global user.email "you@email.com"
-git config --global core.autocrlf true   # fixes Windows line endings
+git config --global core.autocrlf true
 ```
-
-Stored at: `C:\Users\yourname\.gitconfig`
-Only run again if you get a new machine.
 
 **The three commands you use constantly:**
 
 ```powershell
-git add .                        # stage all changed files (put in box)
-git commit -m "description"      # take a snapshot (seal the box)
-git push                         # upload to GitHub (ship the box)
-```
-
-**First-time project setup (already done):**
-
-```powershell
-git init
-git add .
-git commit -m "chore: initial project scaffold"
-git branch -M main
-git remote add origin https://github.com/YOU/react-research-copilot.git
-git push -u origin main
-```
-
-**Every step after that — just three lines:**
-
-```powershell
-git add .
-git commit -m "feat: what you just built"
-git push
+git add .                        # stage all changes
+git commit -m "description"      # take a snapshot
+git push                         # upload to GitHub
 ```
 
 **Commit message conventions:**
 
-- `chore:` → setup, config, no new features
-- `feat:`  → new feature added
+- `chore:` → setup, config
+- `feat:`  → new feature
 - `fix:`   → bug fixed
-- `docs:`  → documentation only
+- `docs:`  → documentation
 
-**When do we commit?**
-After every working step. Each commit = one meaningful piece of work completed.
-
-**Important: .env and Git**
-Once Git starts tracking a file, .gitignore alone won't stop it.
-If .env accidentally gets tracked, remove it with:
+**If .env gets accidentally tracked:**
 
 ```powershell
 git rm --cached .env
 ```
 
-This removes it from Git tracking WITHOUT deleting it from your computer.
-
 ---
 
 ## 4. Virtual Environment
 
-**The problem it solves:**
-Different projects need different versions of the same packages.
-Without isolation, they conflict and break each other.
-
-**What it is:**
-An isolated copy of Python created specifically for one project.
-Has its own Python, pip, and packages folder.
-
-**Simple analogy:**
-
-- Global Python = your house kitchen (shared, don't mess it up)
-- Virtual environment = a portable camping kitchen just for this project
-
-**The commands:**
+**Commands:**
 
 ```powershell
-# Create (once per project)
-python -m venv venv
-
-# Activate (every time you open a new terminal)
-venv\Scripts\activate          # Windows
-source venv/bin/activate       # Mac/Linux
-
-# Deactivate (when switching projects)
-deactivate
+python -m venv venv              # create (once)
+venv\Scripts\activate            # activate (every new terminal)
+deactivate                       # deactivate
 ```
 
-**How to know it's active:**
-Your terminal prompt starts with `(venv)`:
+**Always check for `(venv)` in terminal before running anything.**
 
-```
-(venv) PS D:\ai-projects\react-research-copilot>
-```
-
-Always check for this before running any Python command.
-
-**Why venv/ is gitignored:**
-
-- It's 200-500 MB
-- Contains OS-specific compiled files
-- Anyone can recreate it: `pip install -r requirements.txt`
-
-**The analogy:**
-
-- `requirements.txt` = ingredients list (push to GitHub)
-- `venv/` = the cooked meal (don't push, share the recipe)
-
-**Windows-specific: Execution Policy fix (already done)**
-If you see "running scripts is disabled", run once:
+**Windows execution policy fix (already done):**
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-**If venv ever breaks:**
+**If venv breaks:**
 
 ```powershell
 rm -rf venv
@@ -267,196 +157,324 @@ pip install -r requirements.txt
 
 ## 5. NVIDIA NIM — AI Models
 
-**What is NVIDIA NIM?**
-NVIDIA's platform for accessing AI models via API.
-Uses the same format as the OpenAI API — so you use the `openai`
-Python package but point it at NVIDIA's servers instead.
+**What:** NVIDIA's hosted AI model API. Uses OpenAI-compatible format.
 
-**Three types of models on NIM:**
+**Three types:**
 
-| Type | Hosted by | Cost | Needs GPU? |
-|---|---|---|---|
-| Free Endpoint | NVIDIA servers | Free (rate limited) | No |
-| Downloadable | Your machine | Hardware cost | Yes — powerful GPU |
-| Partner Endpoint | 3rd party | Paid | No |
-
-**For our project — Free Endpoints only:**
-No cost, no GPU needed, just an API key. Perfect for a capstone.
-
-**Models we're using:**
-
-| Role | Model | Why |
+| Type | Cost | Needs GPU? |
 |---|---|---|
-| LLM (reasoning) | `qwen/qwen3.5-122b-a10b` | Best open-source tool calling, agent-ready, free endpoint |
-| Embeddings (RAG) | `nvidia/llama-nemotron-embed-1b-v2` | Purpose-built for document QA retrieval, free endpoint |
+| Free Endpoint | Free (rate limited) | No |
+| Downloadable | Hardware cost | Yes |
+| Partner Endpoint | Paid | No |
 
-**Why Qwen3.5 for the ReAct agent?**
+**Models we used:**
 
-- 122B total parameters, only 10B active (MoE = fast)
-- Highest tool-calling benchmark score among open models
-- Has a reasoning mode — perfect for ReAct's Thought steps
-- Free endpoint
+| Role | Model |
+|---|---|
+| LLM | `meta/llama-3.1-8b-instruct` |
+| Embeddings | `nvidia/llama-nemotron-embed-1b-v2` |
 
-**What is MoE (Mixture of Experts)?**
-A large model split into "experts" — specialized sub-networks.
-Only a few experts activate per query instead of the whole model.
-Result: 122B parameter capability at 10B parameter speed.
+**Why llama-3.1-8b over Qwen3.5-122B?**
+Qwen was 94s per response. Llama 8B was 3.8s. 25x faster. Same quality for this corpus.
 
-**API key:**
-Stored in `.env` as `NVIDIA_API_KEY=nvapi-...`
-Get it from: build.nvidia.com → profile → API Keys
-
-**How the code will use it:**
+**How the code uses it:**
 
 ```python
 from openai import OpenAI
-
 client = OpenAI(
     api_key="nvapi-...",
     base_url="https://integrate.api.nvidia.com/v1"
 )
 ```
 
-Same OpenAI package, different base_url. That's it.
+**Embedding model requires input_type:**
+
+```python
+# For indexing documents
+extra_body={"input_type": "passage", "truncate": "END"}
+
+# For querying
+extra_body={"input_type": "query", "truncate": "END"}
+```
+
+This is called an asymmetric embedding model — different representations for documents vs queries.
 
 ---
 
-## 6. Config Files Explained
+## 6. RAG Pipeline — How It Works
 
-**`requirements.txt`**
-List of all packages the project needs with minimum versions.
-`>=0.25.0` means "this version or higher" — flexible but bounded.
-Run `pip install -r requirements.txt` to install everything at once.
-
-**`.env`**
-Stores secret values — API keys, passwords.
-NEVER commit to GitHub. Protected by `.gitignore`.
+**Step 1: Ingestion**
 
 ```
-NVIDIA_API_KEY=nvapi-your-key-here
+parser.py reads .md and .pdf files → returns {file, type, text, pages}
 ```
 
-**`.env.example`**
-Safe template of `.env` — no real values, just placeholders.
-Goes to GitHub so others know what keys they need.
+**Step 2: Chunking**
 
 ```
-NVIDIA_API_KEY=your_key_here
+chunking.py splits text into ~50 word chunks
+PDFs are chunked per-page so page numbers are preserved
+Each chunk stores: chunk_id, file, type, page, citation, text
 ```
 
-**`.gitignore`**
-Tells Git what to never track or push:
+**Citation format:**
 
-- `venv/` — too large, OS-specific
-- `.env` — contains real secrets
-- `outputs/` — generated files, reproducible
-- `__pycache__/` — Python cache, meaningless in git
+- Markdown: `[01_rag.md]`
+- PDF: `[guide_chunking.pdf:1]`  ← page number included
 
-**`Makefile`**
-Shortcuts for long commands:
+**Step 3: Embedding**
 
 ```
-make install    → pip install -r requirements.txt
-make index      → python scripts/ingest_corpus.py
-make run-api    → uvicorn copilot.api.main:app --reload ...
-make run-ui     → streamlit run frontend/app.py
-make evaluate   → python scripts/run_eval.py
-make test       → pytest tests/ -v
+embeddings.py converts each chunk text → vector (list of numbers)
+Uses NVIDIA's embed model via API
+Vectors stored as numpy float32 arrays
 ```
 
-Indented lines must use TAB not spaces — Makefile quirk.
+**Step 4: FAISS Index**
 
-**`ci.yml` (.github/workflows/)**
-GitHub automatically runs tests on every push.
-Spins up a fresh Linux machine, installs packages, runs pytest.
-Shows green checkmark on your GitHub repo if tests pass.
+```
+vector_store.py builds a FAISS IndexFlatL2
+Stores all vectors + saves chunks.json alongside
+Batch size 16 to respect rate limits
+```
 
-**`README.md`**
-Front page of your GitHub repo.
-Written in Markdown (.md) — GitHub renders it as formatted page.
-Tells visitors: what it is, how to run it, how it's structured.
+**Step 5: Retrieval**
+
+```
+User question → embed_query() → FAISS search → top-5 nearest chunks
+Lower L2 distance = more similar = better match
+```
 
 ---
 
-## 7. Packages Installed
+## 7. ReAct Agent — How It Works
 
-| Package | Job in our project |
+**The loop:**
+
+```python
+for step in range(max_steps):          # max 8 steps
+    response = LLM(messages, tools)    # LLM decides what to do
+    if no tool call:
+        final_answer = response        # done
+        break
+    else:
+        observation = execute_tool()   # run the tool
+        messages.append(observation)   # feed back to LLM
+        continue                       # next step
+```
+
+**Guardrails built in:**
+
+- `max_react_steps = 8` — prevents infinite loops
+- `timeout = 60s` — per API call timeout
+- Retry with backoff — 3 attempts, 5s/10s/15s waits
+- Safe tool allow-list — only permitted tools can execute
+
+**Safe tool allow-list:**
+
+```python
+ALLOWED_TOOLS = {"search_corpus", "open_file", "read_chunk"}
+
+def safe_execute(tool_name, tool_args):
+    if tool_name not in ALLOWED_TOOLS:
+        return f"Tool '{tool_name}' is not permitted."
+    return TOOL_MAP[tool_name](**tool_args)
+```
+
+**Tools available:**
+
+| Tool | What it does |
 |---|---|
-| `openai` | Talk to NVIDIA NIM API (OpenAI-compatible format) |
-| `faiss-cpu` | Store and search vectors fast |
-| `numpy` | Math library — vectors are numpy arrays |
-| `sentence-transformers` | Convert text to vectors locally (fallback) |
-| `pypdf` | Read PDF files from corpus |
-| `pandas` | Read evaluation_questions.csv |
-| `fastapi` | Build the HTTP API |
-| `uvicorn` | Serve the FastAPI app |
-| `pydantic` | Validate request/response data shapes |
-| `pydantic-settings` | Load settings from .env file |
-| `streamlit` | Build the chat UI in pure Python |
-| `tqdm` | Progress bars during indexing |
-| `rich` | Pretty colored terminal output for agent logs |
-| `python-dotenv` | Load .env file into environment on startup |
+| `search_corpus(query)` | Vector search → top 5 chunks |
+| `open_file(filename)` | Read full file from corpus |
+| `read_chunk(chunk_id)` | Read one specific chunk |
 
 ---
 
-## 8. Key Concepts Glossary
+## 8. FastAPI — The HTTP Layer
+
+**Why FastAPI between UI and agent?**
+
+- Separation of concerns — UI has no business logic
+- Any frontend (Streamlit, React, mobile) can use the same API
+- Pydantic validates every request before it reaches the agent
+
+**Endpoints:**
+
+```
+GET  /health  → {"status": "ok", "message": "..."}
+POST /query   → {"question": "..."} → {"answer": "...", "steps": [...]}
+```
+
+**How to run:**
+
+```powershell
+uvicorn copilot.api.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Swagger docs:** <http://localhost:8000/docs>
+
+---
+
+## 9. Streamlit UI
+
+**How to run:**
+
+```powershell
+streamlit run frontend/app.py
+```
+
+**Features built:**
+
+- Chat interface with history
+- Agent steps expandable panel (Thought / Action / Observe)
+- Response time display
+- API health check in sidebar
+
+**Important:** Don't run Streamlit and evaluation at the same time — they compete for the same NVIDIA API rate limit (40 RPM).
+
+---
+
+## 10. Evaluation
+
+**Metric: Grounded Precision**
+
+```
+Word overlap between agent answer and gold snippet
+Range: 0.0 (no overlap) to 1.0 (perfect overlap)
+```
+
+**Results:**
+
+| Mode | Grounded Precision |
+|---|---|
+| Baseline (no tools) | 0.36 |
+| ReAct + tools | 0.57 |
+| Improvement | +0.20 (56% relative gain) |
+
+**Manual accuracy (sampled 10 questions): ~0.80**
+
+**Key failure cases:**
+
+- Q02: Wrong chunks retrieved for prompt injection → answer drifted
+- Q05: Gold snippet wording not in any chunk → corpus coverage gap
+- Q15/Q16: Agent answer correct but used different wording than gold snippet
+
+**How to run evaluation:**
+
+```powershell
+python scripts/run_eval.py           # runs both modes, saves CSVs
+python scripts/generate_report.py   # generates evaluation_report.md
+```
+
+---
+
+## 11. Key Concepts Glossary
 
 | Term | Simple Explanation |
 |---|---|
-| **Vector** | A list of numbers representing the meaning of text |
+| **Vector** | List of numbers representing meaning of text |
 | **Embedding** | Converting text into a vector |
 | **FAISS** | Library that stores vectors and finds similar ones fast |
-| **Chunk** | A small piece of a document (e.g. 300 words) |
+| **Chunk** | Small piece of a document (~50 words) |
 | **RAG** | Find relevant chunks before answering |
 | **ReAct** | Loop: Thought → Action → Observe → repeat |
-| **MoE** | Mixture of Experts — large model, only part activates per query |
-| **NIM** | NVIDIA's platform for hosted AI model APIs |
+| **MoE** | Mixture of Experts — large model, only part activates |
+| **Asymmetric embedding** | Different vectors for documents vs queries |
+| **Grounded precision** | Word overlap between answer and gold snippet |
+| **Allow-list** | Explicit list of permitted operations |
 | **FastAPI** | Python framework for building HTTP APIs |
-| **Streamlit** | Python library for building simple web UIs |
-| **Pydantic** | Validates that data has the right shape and types |
-| **`__init__.py`** | Empty file that makes a folder a Python package |
+| **Streamlit** | Python library for building web UIs |
+| **Pydantic** | Validates data shapes and types |
+| **`__init__.py`** | Makes a folder importable as Python package |
 | **Virtual env** | Isolated Python environment for one project |
-| **Git** | Local version control — tracks changes on your machine |
-| **GitHub** | Cloud storage for Git history — also your portfolio |
-| **CI/CD** | Automatic testing triggered by git push |
+| **Git** | Local version control |
+| **GitHub** | Cloud storage for Git history + portfolio |
+| **CI/CD** | Auto-runs tests on every push |
 | **Makefile** | Shortcuts for long commands |
-| **Free Endpoint** | Model hosted by NVIDIA, free with rate limits |
-| **Downloadable** | Model you run locally — needs a powerful GPU |
-| **Partner Endpoint** | Model hosted by 3rd party, usually paid |
+| **Free Endpoint** | NVIDIA-hosted model, free with rate limits |
 
 ---
 
-## 9. Daily Workflow
+## 12. Daily Workflow
 
 ```powershell
-# Every time you open the project:
+# Start of every session:
 cd D:\ai-projects\bia-capstone-projects\react-research-copilot
-venv\Scripts\activate            # always first — check for (venv)
+venv\Scripts\activate
 
-# After finishing a step:
+# Run the full stack:
+# Terminal 1 — build index (once)
+python scripts/ingest_corpus.py
+
+# Terminal 2 — start API
+uvicorn copilot.api.main:app --reload --host 0.0.0.0 --port 8000
+
+# Terminal 3 — start UI
+streamlit run frontend/app.py
+
+# Terminal 4 — CLI test
+python react_copilot.py --question "What is a North Star metric?"
+
+# After finishing work:
 git add .
-git commit -m "feat: what you built"
+git commit -m "feat/fix/docs: description"
 git push
 ```
 
 ---
 
-## 10. Build Progress
+## 13. Make Commands
 
-```
-✅ Step 0  — Project scaffold, Git, venv, packages, GitHub push
-⬜ Step 1  — Ingestion (parser.py, ingest_pipeline.py)
-⬜ Step 2  — Retrieval (chunking.py, embeddings.py, vector_store.py)
-⬜ Step 3  — Tools (tools.py)
-⬜ Step 4  — ReAct Agent (prompts.py, react_agent.py)
-⬜ Step 5  — API (main.py, schemas.py, routes/)
-⬜ Step 6  — Frontend (app.py, components/)
-⬜ Step 7  — Evaluation (evaluator.py, run_eval.py)
-⬜ Step 8  — CLI (react_copilot.py)
-⬜ Step 9  — Notebook (experimentation.ipynb)
-⬜ Step 10 — Presentation deck
+```powershell
+make install    # pip install -r requirements.txt
+make index      # python scripts/ingest_corpus.py
+make run-api    # uvicorn copilot.api.main:app --reload ...
+make run-ui     # streamlit run frontend/app.py
+make evaluate   # python scripts/run_eval.py
+make test       # pytest tests/ -v
 ```
 
 ---
 
-*Last updated: Step 0 complete — Project scaffold pushed to GitHub*
+## 14. Build Progress — COMPLETE
+
+```
+✅ Step 0  — Scaffold, Git, venv, packages, GitHub
+✅ Step 1  — Ingestion (parser.py, ingest_pipeline.py)
+✅ Step 2  — Retrieval (chunking with page tracking, embeddings, FAISS)
+✅ Step 3  — Tools (search_corpus, open_file, read_chunk, allow-list)
+✅ Step 4  — ReAct Agent (prompts, loop, timeout, retry, allow-list)
+✅ Step 5  — FastAPI (routes, schemas, CORS middleware)
+✅ Step 6  — Streamlit UI (chat, agent steps, response timing)
+✅ Step 7  — Evaluation (baseline 0.36 vs ReAct 0.57, +56%)
+✅ Step 8  — CLI (react_copilot.py --question "...")
+✅ Step 9  — Jupyter Notebook (full pipeline walkthrough)
+✅ Step 10 — Presentation deck (9 slides, dark visual theme)
+
+✅ Gap 1   — PDF citations now [file:page]
+✅ Gap 2   — Agent prompt requires supporting quotes
+✅ Gap 3   — Written evaluation report (evaluation_report.md)
+✅ Gap 4   — Manual accuracy ~0.80 in report
+✅ Gap 5   — Timeout in agent loop (60s per call)
+✅ Gap 6   — Retry with backoff in main agent (3 attempts)
+✅ Gap 7   — Safe tool allow-list (safe_execute)
+```
+
+---
+
+## 15. Resume Bullet Points
+
+```
+ReAct Research Copilot                    Python, FastAPI, Streamlit, FAISS
+• Built a multi-step ReAct agent with RAG over a 39-document corpus
+• Designed FastAPI service exposing agent endpoints with Pydantic validation
+• Implemented FAISS vector index with NVIDIA NIM embedding model
+• Added guardrails: max-steps, 60s timeout, retry with backoff, safe tool allow-list
+• Evaluated grounded precision: baseline 0.36 → ReAct 0.57 (+56%) on 20 questions
+• Deployed interactive Streamlit UI with real-time agent step tracing and citations
+```
+
+---
+
+*Project complete. Submitted: March 2026*
