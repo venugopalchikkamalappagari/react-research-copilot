@@ -3,6 +3,21 @@ from pathlib import Path
 from copilot.retrieval.vector_store import search, load_index
 from copilot.config import settings
 
+# Safe tool allow-list — only these tools can be called by the agent
+ALLOWED_TOOLS = {"search_corpus", "open_file", "read_chunk"}
+
+
+def safe_execute(tool_name: str, tool_args: dict) -> str:
+    """Execute a tool only if it is in the allow-list."""
+    if tool_name not in ALLOWED_TOOLS:
+        return f"Tool '{tool_name}' is not permitted. Allowed tools: {sorted(ALLOWED_TOOLS)}"
+    if tool_name not in TOOL_MAP:
+        return f"Tool '{tool_name}' is allowed but not implemented."
+    try:
+        return TOOL_MAP[tool_name](**tool_args)
+    except Exception as e:
+        return f"Tool '{tool_name}' raised an error: {e}"
+
 # Load index once at startup
 _index, _chunks = load_index()
 

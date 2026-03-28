@@ -53,7 +53,7 @@ def run_react_agent(question: str) -> dict:
             final_answer = "Agent failed after 3 retries. Please try again."
             console.print(f"[bold red]{final_answer}[/bold red]")
             break
-        
+
         message = response.choices[0].message
 
         # No tool call — agent has final answer
@@ -81,11 +81,9 @@ def run_react_agent(question: str) -> dict:
 
             console.print(f"  [bold blue]Action:[/bold blue] {tool_name}({tool_args})")
 
-            # Execute tool
-            if tool_name in TOOL_MAP:
-                observation = TOOL_MAP[tool_name](**tool_args)
-            else:
-                observation = f"Unknown tool: {tool_name}"
+            # Execute tool via safe allow-list
+            from copilot.agent.tools import safe_execute
+            observation = safe_execute(tool_name, tool_args)
 
             # Truncate long observations for display
             display_obs = observation[:300] + "..." if len(observation) > 300 else observation
